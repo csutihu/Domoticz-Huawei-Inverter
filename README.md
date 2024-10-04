@@ -1,3 +1,5 @@
+_Please note: this is Work in progress_
+
 # Domoticz-Huawei-Inverter
 Domoticz plugin for Huawei Solar inverters via Modbus
 
