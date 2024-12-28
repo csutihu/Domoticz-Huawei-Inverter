@@ -48,20 +48,41 @@ class HuaweiSolarPlugin:
         
         self.bridge = self._connectInverter()
         
-        voltage_devices =["PV_01_VOLTAGE", "PV_02_VOLTAGE", "PV_03_VOLTAGE", "PV_04_VOLTAGE"]
+        voltage_devices = ["PV_01_VOLTAGE", "PV_02_VOLTAGE", "PV_03_VOLTAGE", "PV_04_VOLTAGE", "PHASE_A_VOLTAGE", "PHASE_B_VOLTAGE", "PHASE_C_VOLTAGE", "GRID_A_VOLTAGE", "GRID_B_VOLTAGE", "GRID_C_VOLTAGE"]
         for device in voltage_devices:
             if self._getDevice(device) < 0 :
-                Domoticz.Device(Name=device, Unit=(len(Devices)+1), Type=243, Subtype=8, Used=0, DeviceID=device).Create() # create voltage devices
+                iUnit = 0
+                for x in range(1,256):
+                    if x not in Devices:
+                        iUnit=x
+                        break
+                if iUnit==0:
+                    iUnit=len(Devices)+1
+                Domoticz.Device(Name=device, Unit=iUnit, Type=243, Subtype=8, Used=0, DeviceID=device).Create() # create voltage devices
         
-        current_devices =["PV_01_CURRENT", "PV_02_CURRENT", "PV_03_CURRENT", "PV_04_CURRENT"]
+        current_devices = ["PV_01_CURRENT", "PV_02_CURRENT", "PV_03_CURRENT", "PV_04_CURRENT", "PHASE_A_CURRENT", "PHASE_B_CURRENT", "PHASE_C_CURRENT"]
         for device in current_devices:
             if self._getDevice(device) < 0 :
-                Domoticz.Device(Name=device, Unit=(len(Devices)+1), Type=243, Subtype=23, Used=0, DeviceID=device).Create() # create current devices
+                iUnit = 0
+                for x in range(1,256):
+                    if x not in Devices:
+                        iUnit=x
+                        break
+                if iUnit==0:
+                    iUnit=len(Devices)+1
+                Domoticz.Device(Name=device, Unit=iUnit, Type=243, Subtype=23, Used=0, DeviceID=device).Create() # create current devices
         
-        power_devices =["PV_01_POWER", "PV_02_POWER", "PV_03_POWER", "PV_04_POWER", "PV_TOTAL_POWER"]
+        power_devices = ["INPUT_POWER", "ACTIVE_POWER_FAST", "REACTIVE_POWER", "ACTIVE_GRID_A_POWER", "ACTIVE_GRID_B_POWER", "ACTIVE_GRID_C_POWER"]
         for device in power_devices:
             if self._getDevice(device) < 0 :
-                Domoticz.Device(Name=device, Unit=(len(Devices)+1), Type=248, Subtype=1, Used=0, DeviceID=device).Create() # create power devices
+                iUnit = 0
+                for x in range(1,256):
+                    if x not in Devices:
+                        iUnit=x
+                        break
+                if iUnit==0:
+                    iUnit=len(Devices)+1
+                Domoticz.Device(Name=device, Unit=iUnit, Type=248, Subtype=1, Used=0, DeviceID=device).Create() # create power devices
         
         Domoticz.Heartbeat(5)
 
@@ -86,9 +107,15 @@ class HuaweiSolarPlugin:
     def onHeartbeat(self):
         Domoticz.Log("onHeartbeat called")
         
-        #Get PV data
+        #Get data
         loop = get_event_loop()
-        result = loop.run_until_complete(self.bridge.batch_update([rn.PV_01_VOLTAGE, rn.PV_01_CURRENT, rn.PV_02_VOLTAGE, rn.PV_02_CURRENT, rn.PV_03_VOLTAGE, rn.PV_03_CURRENT, rn.PV_04_VOLTAGE, rn.PV_04_CURRENT]))
+        result = loop.run_until_complete(self.bridge.batch_update([rn.INPUT_POWER,
+                                                                   rn.PHASE_A_VOLTAGE, rn.PHASE_B_VOLTAGE, rn.PHASE_C_VOLTAGE,
+                                                                   rn.PHASE_A_CURRENT, rn.PHASE_B_CURRENT, rn.PHASE_C_CURRENT,
+                                                                   rn.ACTIVE_POWER_FAST, rn.REACTIVE_POWER,
+                                                                   rn.PV_01_VOLTAGE, rn.PV_01_CURRENT, rn.PV_02_VOLTAGE, rn.PV_02_CURRENT, rn.PV_03_VOLTAGE, rn.PV_03_CURRENT, rn.PV_04_VOLTAGE, rn.PV_04_CURRENT,
+                                                                   rn.GRID_A_VOLTAGE, rn.GRID_B_VOLTAGE, rn.GRID_C_VOLTAGE,
+                                                                   rn.ACTIVE_GRID_A_POWER, rn.ACTIVE_GRID_B_POWER, rn.ACTIVE_GRID_C_POWER]))
         pv_01_voltage = result['pv_01_voltage'][0]
         pv_02_voltage = result['pv_02_voltage'][0]
         pv_03_voltage = result['pv_03_voltage'][0]
@@ -97,11 +124,22 @@ class HuaweiSolarPlugin:
         pv_02_current = result['pv_02_current'][0]
         pv_03_current = result['pv_03_current'][0]
         pv_04_current = result['pv_04_current'][0]
-        pv_01_power = (pv_01_current * pv_01_voltage)
-        pv_02_power = (pv_02_current * pv_02_voltage)
-        pv_03_power = (pv_03_current * pv_03_voltage)
-        pv_04_power = (pv_04_current * pv_04_voltage)
-        pv_total_power = pv_01_power + pv_02_power + pv_03_power + pv_04_power
+        input_power = result['input_power'][0]
+        phase_A_voltage = result['phase_A_voltage'][0]
+        phase_B_voltage = result['phase_B_voltage'][0]
+        phase_C_voltage = result['phase_C_voltage'][0]
+        phase_A_current = result['phase_A_current'][0]
+        phase_B_current = result['phase_B_current'][0]
+        phase_C_current = result['phase_C_current'][0]
+        active_power_fast = result['active_power_fast'][0]
+        reactive_power = result['reactive_power'][0]
+        grid_A_voltage = result['grid_A_voltage'][0]
+        grid_B_voltage = result['grid_B_voltage'][0]
+        grid_C_voltage = result['grid_C_voltage'][0]
+        active_grid_A_power = result['active_grid_A_power'][0]
+        active_grid_B_power = result['active_grid_B_power'][0]
+        active_grid_C_power = result['active_grid_C_power'][0]
+        
         
         Devices[self._getDevice("PV_01_VOLTAGE")].Update(nValue=0,sValue=str(pv_01_voltage))
         Devices[self._getDevice("PV_02_VOLTAGE")].Update(nValue=0,sValue=str(pv_02_voltage))
@@ -111,11 +149,21 @@ class HuaweiSolarPlugin:
         Devices[self._getDevice("PV_02_CURRENT")].Update(nValue=0,sValue=str(pv_02_current))
         Devices[self._getDevice("PV_03_CURRENT")].Update(nValue=0,sValue=str(pv_03_current))
         Devices[self._getDevice("PV_04_CURRENT")].Update(nValue=0,sValue=str(pv_04_current))
-        Devices[self._getDevice("PV_01_POWER")].Update(nValue=0,sValue=str(pv_01_power))
-        Devices[self._getDevice("PV_02_POWER")].Update(nValue=0,sValue=str(pv_02_power))
-        Devices[self._getDevice("PV_03_POWER")].Update(nValue=0,sValue=str(pv_03_power))
-        Devices[self._getDevice("PV_04_POWER")].Update(nValue=0,sValue=str(pv_04_power))
-        Devices[self._getDevice("PV_TOTAL_POWER")].Update(nValue=0,sValue=str(pv_total_power))
+        Devices[self._getDevice("INPUT_POWER")].Update(nValue=0,sValue=str(input_power))
+        Devices[self._getDevice("PHASE_A_VOLTAGE")].Update(nValue=0,sValue=str(phase_A_voltage))
+        Devices[self._getDevice("PHASE_B_VOLTAGE")].Update(nValue=0,sValue=str(phase_B_voltage))
+        Devices[self._getDevice("PHASE_C_VOLTAGE")].Update(nValue=0,sValue=str(phase_C_voltage))
+        Devices[self._getDevice("PHASE_A_CURRENT")].Update(nValue=0,sValue=str(phase_A_current))
+        Devices[self._getDevice("PHASE_B_CURRENT")].Update(nValue=0,sValue=str(phase_B_current))
+        Devices[self._getDevice("PHASE_C_CURRENT")].Update(nValue=0,sValue=str(phase_C_current))
+        Devices[self._getDevice("ACTIVE_POWER_FAST")].Update(nValue=0,sValue=str(active_power_fast))
+        Devices[self._getDevice("REACTIVE_POWER")].Update(nValue=0,sValue=str(reactive_power))
+        Devices[self._getDevice("GRID_A_VOLTAGE")].Update(nValue=0,sValue=str(grid_A_voltage))
+        Devices[self._getDevice("GRID_B_VOLTAGE")].Update(nValue=0,sValue=str(grid_B_voltage))
+        Devices[self._getDevice("GRID_C_VOLTAGE")].Update(nValue=0,sValue=str(grid_C_voltage))
+        Devices[self._getDevice("ACTIVE_GRID_A_POWER")].Update(nValue=0,sValue=str(active_grid_A_power))
+        Devices[self._getDevice("ACTIVE_GRID_B_POWER")].Update(nValue=0,sValue=str(active_grid_B_power))
+        Devices[self._getDevice("ACTIVE_GRID_C_POWER")].Update(nValue=0,sValue=str(active_grid_C_power))
         
 
     def _connectInverter(self):
