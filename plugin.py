@@ -10,7 +10,7 @@
 #    3. pip3 install -U huawei-solar
 #
 """
-<plugin key="Domoticz-Huawei-Inverter" name="Huawei Solar inverter (modbus TCP/IP)" author="jwgracht" version="0.0.1" wikilink="" externallink="https://github.com/JWGracht/Domoticz-Huawei-Inverter/">
+<plugin key="Domoticz-Huawei-Inverter" name="Huawei Solar inverter (modbus TCP/IP)" author="jwgracht" version="1.0.0" wikilink="" externallink="https://github.com/JWGracht/Domoticz-Huawei-Inverter/">
     <description>
         <p>Domoticz plugin for Huawei Solar inverters via Modbus.</p>
         <p>Required:
@@ -36,12 +36,16 @@ class HuaweiSolarPlugin:
     inverterserveraddress = "127.0.0.1"
     inverterserverport = "502"
     bridge = None
+    minuteCounter = 0
+    accumulated_yield_energy = 0
 
     def __init__(self):
         return
 
     def onStart(self):
         Domoticz.Log("onStart called")
+        
+        self.minuteCounter = 0
         
         self.inverterserveraddress = Parameters["Address"].strip()
         self.inverterserverport = Parameters["Port"].strip()
@@ -60,7 +64,7 @@ class HuaweiSolarPlugin:
                     iUnit=len(Devices)+1
                 Domoticz.Device(Name=device, Unit=iUnit, Type=243, Subtype=8, Used=0, DeviceID=device).Create() # create voltage devices
         
-        current_devices = ["PV_01_CURRENT", "PV_02_CURRENT", "PV_03_CURRENT", "PV_04_CURRENT", "PHASE_A_CURRENT", "PHASE_B_CURRENT", "PHASE_C_CURRENT"]
+        current_devices = ["PV_01_CURRENT", "PV_02_CURRENT", "PV_03_CURRENT", "PV_04_CURRENT", "PHASE_A_CURRENT", "PHASE_B_CURRENT", "PHASE_C_CURRENT", "ACTIVE_GRID_A_CURRENT", "ACTIVE_GRID_B_CURRENT", "ACTIVE_GRID_C_CURRENT"]
         for device in current_devices:
             if self._getDevice(device) < 0 :
                 iUnit = 0
@@ -83,6 +87,17 @@ class HuaweiSolarPlugin:
                 if iUnit==0:
                     iUnit=len(Devices)+1
                 Domoticz.Device(Name=device, Unit=iUnit, Type=248, Subtype=1, Used=0, DeviceID=device).Create() # create power devices
+        
+        #create exported KWH meter
+        if self._getDevice("Energy Meter") < 0 :
+            iUnit = 0
+            for x in range(1,256):
+                if x not in Devices:
+                    iUnit=x
+                    break
+            if iUnit==0:
+                iUnit=len(Devices)+1
+            Domoticz.Device(Name="Energy Meter", Unit=iUnit, Type=243, Subtype=29, Used=0, Switchtype=4, DeviceID="Energy Meter").Create() # create kwh devices
         
         Domoticz.Heartbeat(5)
 
@@ -107,7 +122,7 @@ class HuaweiSolarPlugin:
     def onHeartbeat(self):
         Domoticz.Log("onHeartbeat called")
         
-        #Get data
+        #Get 5 second data
         loop = get_event_loop()
         result = loop.run_until_complete(self.bridge.batch_update([rn.INPUT_POWER,
                                                                    rn.PHASE_A_VOLTAGE, rn.PHASE_B_VOLTAGE, rn.PHASE_C_VOLTAGE,
@@ -115,6 +130,7 @@ class HuaweiSolarPlugin:
                                                                    rn.ACTIVE_POWER_FAST, rn.REACTIVE_POWER,
                                                                    rn.PV_01_VOLTAGE, rn.PV_01_CURRENT, rn.PV_02_VOLTAGE, rn.PV_02_CURRENT, rn.PV_03_VOLTAGE, rn.PV_03_CURRENT, rn.PV_04_VOLTAGE, rn.PV_04_CURRENT,
                                                                    rn.GRID_A_VOLTAGE, rn.GRID_B_VOLTAGE, rn.GRID_C_VOLTAGE,
+                                                                   rn.ACTIVE_GRID_A_CURRENT, rn.ACTIVE_GRID_B_CURRENT, rn.ACTIVE_GRID_C_CURRENT,
                                                                    rn.ACTIVE_GRID_A_POWER, rn.ACTIVE_GRID_B_POWER, rn.ACTIVE_GRID_C_POWER]))
         pv_01_voltage = result['pv_01_voltage'][0]
         pv_02_voltage = result['pv_02_voltage'][0]
@@ -136,11 +152,22 @@ class HuaweiSolarPlugin:
         grid_A_voltage = result['grid_A_voltage'][0]
         grid_B_voltage = result['grid_B_voltage'][0]
         grid_C_voltage = result['grid_C_voltage'][0]
+        active_grid_A_current = result['active_grid_A_current'][0]
+        active_grid_B_current = result['active_grid_B_current'][0]
+        active_grid_C_current = result['active_grid_C_current'][0]
         active_grid_A_power = result['active_grid_A_power'][0]
         active_grid_B_power = result['active_grid_B_power'][0]
         active_grid_C_power = result['active_grid_C_power'][0]
         
+        #get 1 minute data
+        if self.minuteCounter == 12:
+            self.minuteCounter = 0
+        if self.minuteCounter == 0:
+            result = loop.run_until_complete(self.bridge.batch_update([rn.ACCUMULATED_YIELD_ENERGY]))
+            self.accumulated_yield_energy = (result['accumulated_yield_energy'][0]*1000)
+        self.minuteCounter += 1
         
+        #update Domoticz devices
         Devices[self._getDevice("PV_01_VOLTAGE")].Update(nValue=0,sValue=str(pv_01_voltage))
         Devices[self._getDevice("PV_02_VOLTAGE")].Update(nValue=0,sValue=str(pv_02_voltage))
         Devices[self._getDevice("PV_03_VOLTAGE")].Update(nValue=0,sValue=str(pv_03_voltage))
@@ -158,9 +185,13 @@ class HuaweiSolarPlugin:
         Devices[self._getDevice("PHASE_C_CURRENT")].Update(nValue=0,sValue=str(phase_C_current))
         Devices[self._getDevice("ACTIVE_POWER_FAST")].Update(nValue=0,sValue=str(active_power_fast))
         Devices[self._getDevice("REACTIVE_POWER")].Update(nValue=0,sValue=str(reactive_power))
+        Devices[self._getDevice("Energy Meter")].Update(nValue=0,sValue=str(active_power_fast)+";"+str(self.accumulated_yield_energy))
         Devices[self._getDevice("GRID_A_VOLTAGE")].Update(nValue=0,sValue=str(grid_A_voltage))
         Devices[self._getDevice("GRID_B_VOLTAGE")].Update(nValue=0,sValue=str(grid_B_voltage))
         Devices[self._getDevice("GRID_C_VOLTAGE")].Update(nValue=0,sValue=str(grid_C_voltage))
+        Devices[self._getDevice("ACTIVE_GRID_A_CURRENT")].Update(nValue=0,sValue=str(active_grid_A_current))
+        Devices[self._getDevice("ACTIVE_GRID_B_CURRENT")].Update(nValue=0,sValue=str(active_grid_B_current))
+        Devices[self._getDevice("ACTIVE_GRID_C_CURRENT")].Update(nValue=0,sValue=str(active_grid_C_current))
         Devices[self._getDevice("ACTIVE_GRID_A_POWER")].Update(nValue=0,sValue=str(active_grid_A_power))
         Devices[self._getDevice("ACTIVE_GRID_B_POWER")].Update(nValue=0,sValue=str(active_grid_B_power))
         Devices[self._getDevice("ACTIVE_GRID_C_POWER")].Update(nValue=0,sValue=str(active_grid_C_power))
