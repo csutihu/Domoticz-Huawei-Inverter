@@ -122,3 +122,4 @@ asyncio.run(main())
 
 Remember to replace "x.x.x.x" with the actual IP address of your Huawei inverter.  This script requires the huawei_solar library to be installed (pip3 install huawei-solar). It will print a list of all available registers and their corresponding Modbus addresses, which can be helpful for further development or customization.
 ![image](https://github.com/user-attachments/assets/19ba218f-7cbb-4ab2-ae0d-630d82a7e3eb)
+![image](https://github.com/user-attachments/assets/f21db7e8-05f1-42e6-8d6c-64af48cbcfea)
