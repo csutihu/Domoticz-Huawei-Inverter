@@ -116,6 +116,6 @@ async def main():
     for key, value in sorted(rn.__dict__.items()):
         if not key.startswith("__"):  # List only the actual registers
             print(f"{key}: {value}")
-asyncio.run(main())
+asyncio.run(main())```
 
 Remember to replace "x.x.x.x" with the actual IP address of your Huawei inverter.  This script requires the huawei_solar library to be installed (pip3 install huawei-solar). It will print a list of all available registers and their corresponding Modbus addresses, which can be helpful for further development or customization.
