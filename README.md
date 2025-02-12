@@ -1,4 +1,4 @@
-# Domoticz-Huawei-Inverter
+# Domoticz plugin for Huawei SUN2000 Inverter
 
 First of all, a special thanks to JWGracht for the inspiration!
 This Domoticz plugin allows you to monitor your Huawei Solar inverter via Modbus TCP/IP. It retrieves data such as PV voltage and current, grid voltage and current, power production, energy consumption, temperature, and status information.
