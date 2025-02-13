@@ -5,7 +5,12 @@ This Domoticz plugin allows you to monitor your Huawei Solar inverter via Modbus
 
 ## Plugin Functionality
 
-The plugin connects to your Huawei Solar inverter using Modbus TCP/IP, retrieves data at a user-defined interval (minimum 60 seconds), and creates or updates corresponding devices in Domoticz.  It handles communication errors gracefully and attempts to reconnect if the connection is lost.
+The plugin connects to your Huawei Solar inverter using Modbus TCP/IP, retrieves data at a user-defined interval (minimum 60 seconds), and creates or updates corresponding devices in Domoticz.  It handles communication errors gracefully and attempts to reconnect if the connection is lost. The plugin requires the huawei_solar Python library, which supports Modbus communication with the Huawei SUN2000 inverter. To install it, run the following in your terminal:
+```bash
+pip3 install huawei-solar
+```
+
+([Huawei Sun2000 inverter support](https://github.com/wlcrs/huawei-solar-lib))
 
 ## Plugin Components
 
