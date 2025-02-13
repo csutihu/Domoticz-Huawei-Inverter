@@ -134,7 +134,7 @@ cd ~/domoticz/plugins
 git clone https://github.com/csutihu/Domoticz-plugin-for-Huawei-SUN2000-Inverter.git
 sudo systemctl restart domoticz
 ```
-
+# Result
 ![image](https://github.com/user-attachments/assets/07513d71-8145-4a54-a96b-fc9d6b0c7e28)
 ![image](https://github.com/user-attachments/assets/aac22280-a384-46d5-9a0f-a691aaad8944)
 
